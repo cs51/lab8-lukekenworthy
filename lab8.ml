@@ -122,7 +122,11 @@ decide how to implement this.
 ......................................................................*)
                                                    
   let add_listener (evt : 'a event) (listener : 'a -> unit) : id =
-    failwith "WEvent.add_listener not implemented"
+    let new_waiter = {id = new_id (); action = listener} in
+    let lst = !evt in
+    let new_lst = lst @ [new_waiter] in
+    evt := new_lst;
+    new_waiter.id
 
 (*......................................................................
 Exercise 2: Write remove_listener, which, given an id and an event,
@@ -131,7 +135,10 @@ one. If there is no listener with that id, do nothing.
 ......................................................................*)
             
   let remove_listener (evt : 'a event) (i : id) : unit =
-    failwith "WEvent.remove_listener not implemented"
+    let w_lst = !evt in
+    let w_lst_filtered = List.filter (fun w -> w.id <> i) w_lst in
+    evt := w_lst_filtered 
+
 
 (*......................................................................
 Exercise 3: Write fire_event, which will execute all event handlers
@@ -139,7 +146,8 @@ listening for the event.
 ......................................................................*)
             
   let fire_event (evt : 'a event) (arg : 'a) : unit =
-    failwith "WEvent.fire_event not implemented"
+    let lst = !evt in
+    List.iter (fun w -> w.action arg) lst
 
 end
   
@@ -156,7 +164,7 @@ Exercise 4: Given your implementation of Event, create a new event
 called "newswire" that should pass strings to the event handlers.
 ......................................................................*)
   
-let newswire = fun _ -> failwith "newswire not implemented" ;;
+let newswire = WEvent.new_event() ;;
 
 (* News organizations might want to register event listeners to the
 newswire so that they might report on stories. Below are functions
@@ -176,6 +184,11 @@ newswire event.
   
 (* .. *)
 
+let a = WEvent.add_listener newswire fakeNewsNetwork ;;
+let b = WEvent.add_listener newswire buzzFake ;;
+
+
+
 (* Here are some headlines to play with. *)
 
 let h1 = "the national animal of Eritrea is officially the camel!" ;;
@@ -186,6 +199,13 @@ let h3 = "bactrian camels can weigh up to 2200lbs!" ;;
 Exercise 6: Finally, fire newswire events with the above three
 headlines, and observe what happens!
 ......................................................................*)
+
+WEvent.fire_event newswire h1;;
+WEvent.fire_event newswire h2;;
+WEvent.fire_event newswire h3;;
+
+
+
   
 (* .. *)
 
@@ -200,6 +220,10 @@ the publications don't publish right away. *)
 Exercise 7: Remove the newswire listeners that were previously registered.
 ......................................................................*)
 
+WEvent.remove_listener newswire a;;
+WEvent.remove_listener newswire b;;
+
+
 (* .. *)
 
 (*......................................................................
@@ -207,7 +231,7 @@ Exercise 8: Create a new event called publish to signal that all
 stories should be published. The event should be a unit WEvent.event.
 ......................................................................*)
 
-let publish = fun _ -> failwith "publish not implemented" ;; 
+let publish = WEvent.new_event () ;; 
 
 (*......................................................................
 Exercise 9: Write a function receive_report to handle new news
@@ -218,12 +242,16 @@ by registering appropriate listeners, one for each news network,
 waiting for the publish event.
 ......................................................................*)
 
-let receive_report = fun _ -> failwith "report not implemented";;
+let receive_report = WEvent.add_listener newswire (WEvent.add_listener publist fakeNewsNetwork) ;
+                      WEvent.add_listener newswire (WEvent.add_listener publist buzzFake) ;;
+
 
 (*......................................................................
 Exercise 10: Register the receieve_report listener to listen for the
 newswire event.
 ......................................................................*)
+let listend_Newswire = WEvent.add_listener newswire receive_report
+
 
 (* .. *)
 
